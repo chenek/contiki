@@ -55,9 +55,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "ti-lib.h"
+#include "driverlib/aux_adc.h"
+#include "driverlib/aux_wuc.h"
+
 /*---------------------------------------------------------------------------*/
 PROCESS_NAME(cetic_6lbr_client_process);
 PROCESS(cc26xx_web_demo_process, "CC26XX Web Demo");
+PROCESS(adc_process, "ADC process");
 /*---------------------------------------------------------------------------*/
 /*
  * Update sensor readings in a staggered fashion every SENSOR_READING_PERIOD
@@ -84,6 +90,9 @@ static struct uip_icmp6_echo_reply_notification echo_reply_notification;
 static struct etimer echo_request_timer;
 int def_rt_rssi = 0;
 #endif
+
+uint16_t singleSample;
+
 /*---------------------------------------------------------------------------*/
 process_event_t cc26xx_web_demo_publish_event;
 process_event_t cc26xx_web_demo_config_loaded_event;
@@ -109,6 +118,9 @@ DEMO_SENSOR(batmon_temp, CC26XX_WEB_DEMO_SENSOR_BATMON_TEMP,
             CC26XX_WEB_DEMO_UNIT_TEMP);
 DEMO_SENSOR(batmon_volt, CC26XX_WEB_DEMO_SENSOR_BATMON_VOLT,
             "Battery Volt", "battery-volt", "batmon_volt",
+            CC26XX_WEB_DEMO_UNIT_VOLT);
+DEMO_SENSOR(adc_dio23, CC26XX_WEB_DEMO_SENSOR_ADC_DIO23,
+            "ADC DIO23", "adc-dio23", "adc_dio23",
             CC26XX_WEB_DEMO_UNIT_VOLT);
 
 /* Sensortag sensors */
@@ -461,6 +473,14 @@ get_batmon_reading(void *data)
       buf = batmon_volt_reading.converted;
       memset(buf, 0, CC26XX_WEB_DEMO_CONVERTED_LEN);
       snprintf(buf, CC26XX_WEB_DEMO_CONVERTED_LEN, "%d", (value * 125) >> 5);
+    }
+  }
+
+  if(adc_dio23_reading.publish) {
+    if(1) {
+      buf = adc_dio23_reading.converted;
+      memset(buf, 0, CC26XX_WEB_DEMO_CONVERTED_LEN);
+      snprintf(buf, CC26XX_WEB_DEMO_CONVERTED_LEN, "%d", singleSample);
     }
   }
 
@@ -825,6 +845,7 @@ init_sensors(void)
 
   list_add(sensor_list, &batmon_temp_reading);
   list_add(sensor_list, &batmon_volt_reading);
+  list_add(sensor_list, &adc_dio23_reading);
   SENSORS_ACTIVATE(batmon_sensor);
 
 #if BOARD_SENSORTAG
@@ -864,6 +885,7 @@ PROCESS_THREAD(cc26xx_web_demo_process, ev, data)
 
   /* Start all other (enabled) processes first */
   process_start(&httpd_simple_process, NULL);
+  
 #if CC26XX_WEB_DEMO_COAP_SERVER
   process_start(&coap_server_process, NULL);
 #endif
@@ -878,6 +900,10 @@ PROCESS_THREAD(cc26xx_web_demo_process, ev, data)
 
 #if CC26XX_WEB_DEMO_NET_UART
   process_start(&net_uart_process, NULL);
+#endif
+
+#if CC26XX_WEB_DEMO_ADC_DEMO
+  process_start(&adc_process, NULL);
 #endif
 
   /*
@@ -964,6 +990,56 @@ PROCESS_THREAD(cc26xx_web_demo_process, ev, data)
     PROCESS_YIELD();
   }
 
+  PROCESS_END();
+}
+
+PROCESS_THREAD(adc_process, ev, data)
+{
+  PROCESS_BEGIN();
+  static struct etimer et_adc;
+  while(1)
+  {
+	  etimer_set(&et_adc, CLOCK_SECOND*5);
+	  PROCESS_WAIT_EVENT(); 
+	  if(etimer_expired(&et_adc)) {
+		//intialisation of ADC
+		ti_lib_aon_wuc_aux_wakeup_event(AONWUC_AUX_WAKEUP);
+		while(!(ti_lib_aon_wuc_power_status_get() & AONWUC_AUX_POWER_ON))
+		{ }
+
+		// Enable clock for ADC digital and analog interface (not currently enabled in driver)
+		// Enable clocks
+		ti_lib_aux_wuc_clock_enable(AUX_WUC_ADI_CLOCK | AUX_WUC_ANAIF_CLOCK | AUX_WUC_SMPH_CLOCK);
+		while(ti_lib_aux_wuc_clock_status(AUX_WUC_ADI_CLOCK | AUX_WUC_ANAIF_CLOCK | AUX_WUC_SMPH_CLOCK) != AUX_WUC_CLOCK_READY)
+		{ }
+		//printf("clock selected\r\n");
+	   
+		// Connect AUX IO7 (DIO23, but also DP2 on XDS110) as analog input.
+		AUXADCSelectInput(ADC_COMPB_IN_AUXIO7); 
+		//printf("input selected\r\n");
+	   
+		// Set up ADC range
+		// AUXADC_REF_FIXED = nominally 4.3 V
+		AUXADCEnableSync(AUXADC_REF_FIXED,  AUXADC_SAMPLE_TIME_2P7_US, AUXADC_TRIGGER_MANUAL);
+		//printf("init adc --- OK\r\n");
+
+		//Trigger ADC converting
+		AUXADCGenManualTrigger();
+		//printf("trigger --- OK\r\n");
+	   
+		//reading adc value
+		singleSample = AUXADCReadFifo();
+
+		//printf("%d mv on ADC\r\n",singleSample);
+	   
+		//shut the adc down
+		AUXADCDisable();
+		//printf("disable --- OK\r\n");	
+		get_batmon_reading(NULL);
+		
+		etimer_reset(&et_adc);
+		}
+  }
   PROCESS_END();
 }
 /*---------------------------------------------------------------------------*/
