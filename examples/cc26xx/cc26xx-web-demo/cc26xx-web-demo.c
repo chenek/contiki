@@ -485,9 +485,9 @@ get_adc_reading(void *data)
   char *buf;
 
   if(adc_dio23_reading.publish) {
-	buf = adc_dio23_reading.converted;
-	memset(buf, 0, CC26XX_WEB_DEMO_CONVERTED_LEN);
-	snprintf(buf, CC26XX_WEB_DEMO_CONVERTED_LEN, "%d", single_adc_sample);
+    buf = adc_dio23_reading.converted;
+    memset(buf, 0, CC26XX_WEB_DEMO_CONVERTED_LEN);
+    snprintf(buf, CC26XX_WEB_DEMO_CONVERTED_LEN, "%d", single_adc_sample);
   }
 }
 /*---------------------------------------------------------------------------*/
@@ -889,7 +889,7 @@ PROCESS_THREAD(cc26xx_web_demo_process, ev, data)
 
   /* Start all other (enabled) processes first */
   process_start(&httpd_simple_process, NULL);
-  
+
 #if CC26XX_WEB_DEMO_COAP_SERVER
   process_start(&coap_server_process, NULL);
 #endif
@@ -916,7 +916,7 @@ PROCESS_THREAD(cc26xx_web_demo_process, ev, data)
    */
   cc26xx_web_demo_config.sensors_bitmap = 0xFFFFFFFF; /* all on by default */
   cc26xx_web_demo_config.def_rt_ping_interval =
-      CC26XX_WEB_DEMO_DEFAULT_RSSI_MEAS_INTERVAL;
+    CC26XX_WEB_DEMO_DEFAULT_RSSI_MEAS_INTERVAL;
   load_config();
 
   /*
@@ -1001,49 +1001,48 @@ PROCESS_THREAD(adc_process, ev, data)
 {
   PROCESS_BEGIN();
   static struct etimer et_adc;
-  while(1)
-  {
-	etimer_set(&et_adc, CLOCK_SECOND*5);
-	PROCESS_WAIT_EVENT(); 
-	if(etimer_expired(&et_adc)) {
-		//intialisation of ADC
-		ti_lib_aon_wuc_aux_wakeup_event(AONWUC_AUX_WAKEUP);
-		while(!(ti_lib_aon_wuc_power_status_get() & AONWUC_AUX_POWER_ON))
-		{ }
+  while(1) {
+    etimer_set(&et_adc, CLOCK_SECOND * 5);
+    PROCESS_WAIT_EVENT();
+    if(etimer_expired(&et_adc)) {
+      /* intialisation of ADC */
+      ti_lib_aon_wuc_aux_wakeup_event(AONWUC_AUX_WAKEUP);
+      while(!(ti_lib_aon_wuc_power_status_get() & AONWUC_AUX_POWER_ON)) {
+      }
 
-		// Enable clock for ADC digital and analog interface (not currently enabled in driver)
-		// Enable clocks
-		ti_lib_aux_wuc_clock_enable(AUX_WUC_ADI_CLOCK | AUX_WUC_ANAIF_CLOCK | AUX_WUC_SMPH_CLOCK);
-		while(ti_lib_aux_wuc_clock_status(AUX_WUC_ADI_CLOCK | AUX_WUC_ANAIF_CLOCK | AUX_WUC_SMPH_CLOCK) != AUX_WUC_CLOCK_READY)
-		{ }
-		//printf("clock selected\r\n");
+      /* Enable clock for ADC digital and analog interface (not currently enabled in driver) */
+      /* Enable clocks */
+      ti_lib_aux_wuc_clock_enable(AUX_WUC_ADI_CLOCK | AUX_WUC_ANAIF_CLOCK | AUX_WUC_SMPH_CLOCK);
+      while(ti_lib_aux_wuc_clock_status(AUX_WUC_ADI_CLOCK | AUX_WUC_ANAIF_CLOCK | AUX_WUC_SMPH_CLOCK) != AUX_WUC_CLOCK_READY) {
+      }
+      /* printf("clock selected\r\n"); */
 
-		// Connect AUX IO7 (DIO23, but also DP2 on XDS110) as analog input.
-		AUXADCSelectInput(ADC_COMPB_IN_AUXIO7); 
-		//printf("input selected\r\n");
+      /* Connect AUX IO7 (DIO23, but also DP2 on XDS110) as analog input. */
+      AUXADCSelectInput(ADC_COMPB_IN_AUXIO7);
+      /* printf("input selected\r\n"); */
 
-		// Set up ADC range
-		// AUXADC_REF_FIXED = nominally 4.3 V
-		AUXADCEnableSync(AUXADC_REF_FIXED,  AUXADC_SAMPLE_TIME_2P7_US, AUXADC_TRIGGER_MANUAL);
-		//printf("init adc --- OK\r\n");
+      /* Set up ADC range */
+      /* AUXADC_REF_FIXED = nominally 4.3 V */
+      AUXADCEnableSync(AUXADC_REF_FIXED, AUXADC_SAMPLE_TIME_2P7_US, AUXADC_TRIGGER_MANUAL);
+      /* printf("init adc --- OK\r\n"); */
 
-		//Trigger ADC converting
-		AUXADCGenManualTrigger();
-		//printf("trigger --- OK\r\n");
+      /* Trigger ADC converting */
+      AUXADCGenManualTrigger();
+      /* printf("trigger --- OK\r\n"); */
 
-		//reading adc value
-		single_adc_sample = AUXADCReadFifo();
-                single_adc_sample = (4300*single_adc_sample)/4096;
+      /* reading adc value */
+      single_adc_sample = AUXADCReadFifo();
+      single_adc_sample = (4300 * single_adc_sample) / 4096;
 
-		//printf("%d mv on ADC\r\n",single_adc_sample);
+      /* printf("%d mv on ADC\r\n",single_adc_sample); */
 
-		//shut the adc down
-		AUXADCDisable();
-		//printf("disable --- OK\r\n");	
-		get_adc_reading(NULL);
+      /* shut the adc down */
+      AUXADCDisable();
+      /* printf("disable --- OK\r\n"); */
+      get_adc_reading(NULL);
 
-		etimer_reset(&et_adc);
-	}
+      etimer_reset(&et_adc);
+    }
   }
   PROCESS_END();
 }

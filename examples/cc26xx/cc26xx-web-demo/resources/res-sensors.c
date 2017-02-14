@@ -113,7 +113,7 @@ res_get_handler_batmon_volt(void *request, void *response, uint8_t *buffer,
 /*---------------------------------------------------------------------------*/
 static void
 res_get_handler_adc_dio23(void *request, void *response, uint8_t *buffer,
-                            uint16_t preferred_size, int32_t *offset)
+                          uint16_t preferred_size, int32_t *offset)
 {
   res_get_handler_all(CC26XX_WEB_DEMO_SENSOR_ADC_DIO23, request, response,
                       buffer, preferred_size, offset);
