@@ -1033,6 +1033,7 @@ PROCESS_THREAD(adc_process, ev, data)
 
 		//reading adc value
 		single_adc_sample = AUXADCReadFifo();
+                single_adc_sample = (4300*single_adc_sample)/4096;
 
 		//printf("%d mv on ADC\r\n",single_adc_sample);
 
