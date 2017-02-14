@@ -91,7 +91,7 @@ static struct etimer echo_request_timer;
 int def_rt_rssi = 0;
 #endif
 
-uint16_t singleSample;
+uint16_t single_adc_sample;
 
 /*---------------------------------------------------------------------------*/
 process_event_t cc26xx_web_demo_publish_event;
@@ -476,15 +476,19 @@ get_batmon_reading(void *data)
     }
   }
 
-  if(adc_dio23_reading.publish) {
-    if(1) {
-      buf = adc_dio23_reading.converted;
-      memset(buf, 0, CC26XX_WEB_DEMO_CONVERTED_LEN);
-      snprintf(buf, CC26XX_WEB_DEMO_CONVERTED_LEN, "%d", singleSample);
-    }
-  }
-
   ctimer_set(&batmon_timer, next, get_batmon_reading, NULL);
+}
+/*---------------------------------------------------------------------------*/
+static void
+get_adc_reading(void *data)
+{
+  char *buf;
+
+  if(adc_dio23_reading.publish) {
+	buf = adc_dio23_reading.converted;
+	memset(buf, 0, CC26XX_WEB_DEMO_CONVERTED_LEN);
+	snprintf(buf, CC26XX_WEB_DEMO_CONVERTED_LEN, "%d", single_adc_sample);
+  }
 }
 /*---------------------------------------------------------------------------*/
 #if BOARD_SENSORTAG
@@ -999,9 +1003,9 @@ PROCESS_THREAD(adc_process, ev, data)
   static struct etimer et_adc;
   while(1)
   {
-	  etimer_set(&et_adc, CLOCK_SECOND*5);
-	  PROCESS_WAIT_EVENT(); 
-	  if(etimer_expired(&et_adc)) {
+	etimer_set(&et_adc, CLOCK_SECOND*5);
+	PROCESS_WAIT_EVENT(); 
+	if(etimer_expired(&et_adc)) {
 		//intialisation of ADC
 		ti_lib_aon_wuc_aux_wakeup_event(AONWUC_AUX_WAKEUP);
 		while(!(ti_lib_aon_wuc_power_status_get() & AONWUC_AUX_POWER_ON))
@@ -1013,11 +1017,11 @@ PROCESS_THREAD(adc_process, ev, data)
 		while(ti_lib_aux_wuc_clock_status(AUX_WUC_ADI_CLOCK | AUX_WUC_ANAIF_CLOCK | AUX_WUC_SMPH_CLOCK) != AUX_WUC_CLOCK_READY)
 		{ }
 		//printf("clock selected\r\n");
-	   
+
 		// Connect AUX IO7 (DIO23, but also DP2 on XDS110) as analog input.
 		AUXADCSelectInput(ADC_COMPB_IN_AUXIO7); 
 		//printf("input selected\r\n");
-	   
+
 		// Set up ADC range
 		// AUXADC_REF_FIXED = nominally 4.3 V
 		AUXADCEnableSync(AUXADC_REF_FIXED,  AUXADC_SAMPLE_TIME_2P7_US, AUXADC_TRIGGER_MANUAL);
@@ -1026,19 +1030,19 @@ PROCESS_THREAD(adc_process, ev, data)
 		//Trigger ADC converting
 		AUXADCGenManualTrigger();
 		//printf("trigger --- OK\r\n");
-	   
-		//reading adc value
-		singleSample = AUXADCReadFifo();
 
-		//printf("%d mv on ADC\r\n",singleSample);
-	   
+		//reading adc value
+		single_adc_sample = AUXADCReadFifo();
+
+		//printf("%d mv on ADC\r\n",single_adc_sample);
+
 		//shut the adc down
 		AUXADCDisable();
 		//printf("disable --- OK\r\n");	
-		get_batmon_reading(NULL);
-		
+		get_adc_reading(NULL);
+
 		etimer_reset(&et_adc);
-		}
+	}
   }
   PROCESS_END();
 }
