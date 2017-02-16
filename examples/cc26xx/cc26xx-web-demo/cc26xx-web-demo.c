@@ -91,7 +91,7 @@ static struct etimer echo_request_timer;
 int def_rt_rssi = 0;
 #endif
 
-uint16_t single_adc_sample;
+static uint16_t single_adc_sample;
 
 /*---------------------------------------------------------------------------*/
 process_event_t cc26xx_web_demo_publish_event;
