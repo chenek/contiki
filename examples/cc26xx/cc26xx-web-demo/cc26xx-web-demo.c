@@ -1014,30 +1014,26 @@ PROCESS_THREAD(adc_process, ev, data)
     ti_lib_aux_wuc_clock_enable(AUX_WUC_ADI_CLOCK | AUX_WUC_ANAIF_CLOCK | AUX_WUC_SMPH_CLOCK);
     while(ti_lib_aux_wuc_clock_status(AUX_WUC_ADI_CLOCK | AUX_WUC_ANAIF_CLOCK | AUX_WUC_SMPH_CLOCK) != AUX_WUC_CLOCK_READY) {
     }
-    /* printf("clock selected\r\n"); */
 
     /* Connect AUX IO7 (DIO23, but also DP2 on XDS110) as analog input. */
     AUXADCSelectInput(ADC_COMPB_IN_AUXIO7);
-    /* printf("input selected\r\n"); */
 
     /* Set up ADC range */
     /* AUXADC_REF_FIXED = nominally 4.3 V */
     AUXADCEnableSync(AUXADC_REF_FIXED, AUXADC_SAMPLE_TIME_2P7_US, AUXADC_TRIGGER_MANUAL);
-    /* printf("init adc --- OK\r\n"); */
 
     /* Trigger ADC converting */
     AUXADCGenManualTrigger();
-    /* printf("trigger --- OK\r\n"); */
 
     /* reading adc value */
     single_adc_sample = AUXADCReadFifo();
     single_adc_sample = (4300 * single_adc_sample) / 4096;
 
-    /* printf("%u mv on ADC\r\n", single_adc_sample); */
+    /* printf("%u mv on ADC!\n", single_adc_sample); */
 
     /* shut the adc down */
     AUXADCDisable();
-    /* printf("disable --- OK\r\n"); */
+
     get_adc_reading(NULL);
 
     etimer_reset(&et_adc);
