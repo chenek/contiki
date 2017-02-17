@@ -481,11 +481,13 @@ static void
 get_adc_reading(void *data)
 {
   char *buf;
+  uint32_t adc_sample_convertor;
 
   if(adc_dio23_reading.publish) {
+    adc_sample_convertor = (uint32_t)(((uint32_t)single_adc_sample * 4300) / 4096);
     buf = adc_dio23_reading.converted;
     memset(buf, 0, CC26XX_WEB_DEMO_CONVERTED_LEN);
-    snprintf(buf, CC26XX_WEB_DEMO_CONVERTED_LEN, "%u", single_adc_sample);
+    snprintf(buf, CC26XX_WEB_DEMO_CONVERTED_LEN, "%u", adc_sample_convertor);
   }
 }
 /*---------------------------------------------------------------------------*/
@@ -998,7 +1000,6 @@ PROCESS_THREAD(cc26xx_web_demo_process, ev, data)
 PROCESS_THREAD(adc_process, ev, data)
 {
   PROCESS_BEGIN();
-  uint32_t adc_sample_convertor;
   static struct etimer et_adc;
   etimer_set(&et_adc, CLOCK_SECOND * 5);
   while(1) {
@@ -1026,8 +1027,6 @@ PROCESS_THREAD(adc_process, ev, data)
 
     /* reading adc value */
     single_adc_sample = ti_lib_aux_adc_read_fifo();
-    adc_sample_convertor = ((uint32_t)single_adc_sample * 4300) / 4096;
-    single_adc_sample = adc_sample_convertor;
 
     /* printf("%u mv on ADC!\n", single_adc_sample); */
 
