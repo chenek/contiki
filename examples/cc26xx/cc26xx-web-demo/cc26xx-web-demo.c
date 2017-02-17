@@ -481,13 +481,13 @@ static void
 get_adc_reading(void *data)
 {
   char *buf;
-  uint32_t adc_sample_convertor;
+  int adc_sample_convertor;
 
   if(adc_dio23_reading.publish) {
-    adc_sample_convertor = (uint32_t)(((uint32_t)single_adc_sample * 4300) / 4096);
+    adc_sample_convertor = (int)(((int)single_adc_sample * 4300) / 4096);
     buf = adc_dio23_reading.converted;
     memset(buf, 0, CC26XX_WEB_DEMO_CONVERTED_LEN);
-    snprintf(buf, CC26XX_WEB_DEMO_CONVERTED_LEN, "%u", adc_sample_convertor);
+    snprintf(buf, CC26XX_WEB_DEMO_CONVERTED_LEN, "%d", adc_sample_convertor);
   }
 }
 /*---------------------------------------------------------------------------*/
