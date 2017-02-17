@@ -57,8 +57,6 @@
 #include <string.h>
 
 #include "ti-lib.h"
-#include "driverlib/aux_adc.h"
-#include "driverlib/aux_wuc.h"
 
 /*---------------------------------------------------------------------------*/
 PROCESS_NAME(cetic_6lbr_client_process);
@@ -1000,6 +998,7 @@ PROCESS_THREAD(cc26xx_web_demo_process, ev, data)
 PROCESS_THREAD(adc_process, ev, data)
 {
   PROCESS_BEGIN();
+  uint32_t adc_sample_convertor;
   static struct etimer et_adc;
   etimer_set(&et_adc, CLOCK_SECOND * 5);
   while(1) {
@@ -1016,23 +1015,24 @@ PROCESS_THREAD(adc_process, ev, data)
     }
 
     /* Connect AUX IO7 (DIO23, but also DP2 on XDS110) as analog input. */
-    AUXADCSelectInput(ADC_COMPB_IN_AUXIO7);
+    ti_lib_aux_adc_select_input(ADC_COMPB_IN_AUXIO7);
 
     /* Set up ADC range */
     /* AUXADC_REF_FIXED = nominally 4.3 V */
-    AUXADCEnableSync(AUXADC_REF_FIXED, AUXADC_SAMPLE_TIME_2P7_US, AUXADC_TRIGGER_MANUAL);
+    ti_lib_aux_adc_enable_sync(AUXADC_REF_FIXED, AUXADC_SAMPLE_TIME_2P7_US, AUXADC_TRIGGER_MANUAL);
 
     /* Trigger ADC converting */
-    AUXADCGenManualTrigger();
+    ti_lib_aux_adc_gen_manual_trigger();
 
     /* reading adc value */
-    single_adc_sample = AUXADCReadFifo();
-    single_adc_sample = (4300 * single_adc_sample) / 4096;
+    single_adc_sample = ti_lib_aux_adc_read_fifo();
+    adc_sample_convertor = ((uint32_t)single_adc_sample * 4300) / 4096;
+    single_adc_sample = adc_sample_convertor;
 
     /* printf("%u mv on ADC!\n", single_adc_sample); */
 
     /* shut the adc down */
-    AUXADCDisable();
+    ti_lib_aux_adc_disable();
 
     get_adc_reading(NULL);
 
