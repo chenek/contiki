@@ -83,7 +83,7 @@
 #ifdef CC26XX_WEB_DEMO_CONF_ADC_DEMO
 #define CC26XX_WEB_DEMO_ADC_DEMO CC26XX_WEB_DEMO_CONF_ADC_DEMO
 #else
-#define CC26XX_WEB_DEMO_ADC_DEMO 1
+#define CC26XX_WEB_DEMO_ADC_DEMO 0
 #endif
 
 /*---------------------------------------------------------------------------*/
